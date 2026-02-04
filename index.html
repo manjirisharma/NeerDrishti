@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flood Risk Predictor | Disaster Response Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <path d="M16 2L4 12v12l12 6 12-6V12L16 2z" fill="#3b82f6" opacity="0.2"/>
+                    <path d="M16 2L4 12l12 6 12-6L16 2z" fill="#3b82f6"/>
+                    <path d="M16 18v12M4 24V12M28 24V12" stroke="#60a5fa" stroke-width="2"/>
+                </svg>
+                <span>NeerDrishti</span>
+            </div>
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        <nav class="nav-menu">
+            <a href="#dashboard" class="nav-item active" data-section="dashboard">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="#map" class="nav-item" data-section="map">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"></path>
+                </svg>
+                <span>Flood Map</span>
+            </a>
+            <a href="#analysis" class="nav-item" data-section="analysis">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <span>Analysis</span>
+            </a>
+            <a href="#alerts" class="nav-item" data-section="alerts">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>Alerts</span>
+            </a>
+            <a href="#upload" class="nav-item" data-section="upload">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span>Upload & Inference</span>
+            </a>
+            <a href="#help" class="nav-item" data-section="help">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>Help Bot</span>
+            </a>
+            <a href="#settings" class="nav-item" data-section="settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"></path>
+                </svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Location Permission Modal -->
+        <div class="modal" id="locationModal">
+            <div class="modal-content">
+                <div class="modal-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                </div>
+                <h3>Enable Location Access</h3>
+                <p>Allow FloodWatch to access your location for accurate real-time flood risk assessment and personalized alerts.</p>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="denyLocation">Use Regional Data</button>
+                    <button class="btn btn-primary" id="allowLocation">Allow Location</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <section class="section active" id="dashboard">
+            <div class="section-header">
+                <div>
+                    <h1>Flood Risk Predictor</h1>
+                    <p class="location-info" id="locationInfo">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span>Loading location...</span>
+                    </p>
+                </div>
+                <div class="header-actions">
+                    <span class="last-updated" id="lastUpdated">Updated just now</span>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Hero Card -->
+                <div class="hero-card">
+                    <div class="risk-status" id="riskStatus">
+                        <div class="risk-badge minimal">
+                            <div class="risk-icon pulse"></div>
+                            <span>SAFE</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-label">Confidence</div>
+                            <div class="confidence-progress">
+                                <div class="confidence-fill" style="width: 94%"></div>
+                            </div>
+                            <div class="confidence-value">94%</div>
+                        </div>
+                    </div>
+                    <div class="risk-factors">
+                        <div class="factor-chip safe">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 17.58A5 5 0 0018 8h-1.26A8 8 0 104 16.25"></path>
+                            </svg>
+                            Rainfall: Low
+                        </div>
+                        <div class="factor-chip safe">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                            </svg>
+                            River Proximity: Safe
+                        </div>
+                        <div class="factor-chip safe">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M2 12h2M4 7h1M4 17h1M8 4v1M8 20v1M12 2v2M12 20v2M16 4v1M16 20v1M20 7h1M20 17h1M20 12h2"></path>
+                            </svg>
+                            Soil Saturation: Normal
+                        </div>
+                        <div class="factor-chip safe">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Historical Risk: Low
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weather Cards -->
+                <div class="weather-panel">
+                    <div class="weather-card">
+                        <div class="weather-icon">☔</div>
+                        <div class="weather-info">
+                            <div class="weather-label">Rainfall</div>
+                            <div class="weather-value">2.3 mm/hr</div>
+                            <div class="weather-trend up">↑ 12%</div>
+                        </div>
+                    </div>
+                    <div class="weather-card">
+                        <div class="weather-icon">💧</div>
+                        <div class="weather-info">
+                            <div class="weather-label">Humidity</div>
+                            <div class="weather-value">67%</div>
+                            <div class="weather-trend down">↓ 5%</div>
+                        </div>
+                    </div>
+                    <div class="weather-card">
+                        <div class="weather-icon">🌬️</div>
+                        <div class="weather-info">
+                            <div class="weather-label">Wind Speed</div>
+                            <div class="weather-value">18 km/h</div>
+                            <div class="weather-trend neutral">→ 0%</div>
+                        </div>
+                    </div>
+                    <div class="weather-card forecast">
+                        <div class="forecast-header">24h Forecast</div>
+                        <div class="forecast-summary">Moderate rainfall expected. Monitor conditions.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon minimal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">2,847</div>
+                        <div class="stat-label">Areas Monitored</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">Active Alerts</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon safe">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">98.2%</div>
+                        <div class="stat-label">Accuracy Rate</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon info">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">1.2M</div>
+                        <div class="stat-label">People Protected</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Map Section -->
+        <section class="section" id="map">
+            <div class="section-header">
+                <h1>Interactive Flood Risk Map</h1>
+                <p>Click any location to analyze flood risk in real-time</p>
+            </div>
+            <div class="map-container">
+                <div id="floodMap" class="flood-map"></div>
+                <div class="map-legend">
+                    <div class="legend-title">Risk Levels</div>
+                    <div class="legend-item"><span class="legend-color minimal"></span> Minimal</div>
+                    <div class="legend-item"><span class="legend-color low"></span> Low</div>
+                    <div class="legend-item"><span class="legend-color guarded"></span> Guarded</div>
+                    <div class="legend-item"><span class="legend-color elevated"></span> Elevated</div>
+                    <div class="legend-item"><span class="legend-color severe"></span> Severe</div>
+                    <div class="legend-item"><span class="legend-color extreme"></span> Extreme</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analysis Section -->
+        <section class="section" id="analysis">
+            <div class="section-header">
+                <h1>Regional Analysis</h1>
+                <p>AI-powered assessment of flood-prone regions</p>
+            </div>
+
+            <div class="analysis-grid">
+                <div class="analysis-card">
+                    <div class="analysis-image eastern-ghats">
+                        <div class="image-overlay">
+                            <div class="analysis-badge low">Low Risk</div>
+                            <div class="analysis-annotations">
+                                <div class="annotation" style="top: 30%; left: 40%;">
+                                    <div class="annotation-dot"></div>
+                                    <div class="annotation-label">Elevation: 1200m</div>
+                                </div>
+                                <div class="annotation" style="top: 60%; left: 60%;">
+                                    <div class="annotation-dot"></div>
+                                    <div class="annotation-label">Drainage: Good</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="analysis-info">
+                        <h3>Eastern Ghats</h3>
+                        <p>Natural drainage patterns reduce flood risk. Moderate rainfall absorption capacity detected.</p>
+                        <div class="analysis-metrics">
+                            <span class="metric">Risk Score: 2.4/10</span>
+                            <span class="metric">Confidence: 89%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analysis-card">
+                    <div class="analysis-image western-ghats">
+                        <div class="image-overlay">
+                            <div class="analysis-badge guarded">Guarded</div>
+                            <div class="analysis-annotations">
+                                <div class="annotation" style="top: 25%; left: 35%;">
+                                    <div class="annotation-dot warning"></div>
+                                    <div class="annotation-label">Heavy Rainfall Zone</div>
+                                </div>
+                                <div class="annotation" style="top: 70%; left: 55%;">
+                                    <div class="annotation-dot warning"></div>
+                                    <div class="annotation-label">River Basin</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="analysis-info">
+                        <h3>Western Ghats</h3>
+                        <p>High rainfall region with complex topography. Enhanced monitoring recommended during monsoon.</p>
+                        <div class="analysis-metrics">
+                            <span class="metric">Risk Score: 5.8/10</span>
+                            <span class="metric">Confidence: 92%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Explainability Panel -->
+            <div class="explainability-panel">
+                <h3>Why this risk level?</h3>
+                <p class="explainability-intro">Our AI model analyzed multiple factors to determine the current risk assessment:</p>
+                <div class="explainability-factors">
+                    <div class="factor-item">
+                        <div class="factor-icon up">↑</div>
+                        <div class="factor-content">
+                            <strong>Rainfall Intensity Increased</strong>
+                            <p>24-hour rainfall accumulation +35% above seasonal average</p>
+                        </div>
+                    </div>
+                    <div class="factor-item">
+                        <div class="factor-icon neutral">→</div>
+                        <div class="factor-content">
+                            <strong>River Proximity High</strong>
+                            <p>Location within 2.3km of major water body with moderate flow rate</p>
+                        </div>
+                    </div>
+                    <div class="factor-item">
+                        <div class="factor-icon down">↓</div>
+                        <div class="factor-content">
+                            <strong>Soil Absorption Reduced</strong>
+                            <p>Ground saturation at 67%, decreasing absorption capacity</p>
+                        </div>
+                    </div>
+                    <div class="factor-item">
+                        <div class="factor-icon neutral">⚠</div>
+                        <div class="factor-content">
+                            <strong>Historical Flood Zone Detected</strong>
+                            <p>Area experienced minor flooding in 2019 and 2022 during similar conditions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Alerts Section -->
+        <section class="section" id="alerts">
+            <div class="section-header">
+                <h1>Active Alerts & Warnings</h1>
+                <p>Real-time notifications for your region</p>
+            </div>
+
+            <div class="alerts-container">
+                <div class="alert-card severe">
+                    <div class="alert-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-header">
+                            <h3>Rising Water Level</h3>
+                            <span class="alert-time">12 min ago</span>
+                        </div>
+                        <p>Gomti River water level rising rapidly. Expected to reach warning threshold in 3-4 hours.</p>
+                        <div class="alert-location">📍 Lucknow, Uttar Pradesh</div>
+                    </div>
+                </div>
+
+                <div class="alert-card elevated">
+                    <div class="alert-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 17.58A5 5 0 0018 8h-1.26A8 8 0 104 16.25"></path>
+                            <line x1="8" y1="13" x2="8" y2="21"></line>
+                            <line x1="12" y1="9" x2="12" y2="21"></line>
+                            <line x1="16" y1="13" x2="16" y2="21"></line>
+                        </svg>
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-header">
+                            <h3>Heavy Rainfall Expected</h3>
+                            <span class="alert-time">1 hour ago</span>
+                        </div>
+                        <p>IMD forecasts heavy to very heavy rainfall (115-204mm) over next 24 hours.</p>
+                        <div class="alert-location">📍 Eastern UP Region</div>
+                    </div>
+                </div>
+
+                <div class="alert-card extreme">
+                    <div class="alert-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 11l3 3L22 4"></path>
+                            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+                        </svg>
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-header">
+                            <h3>Evacuation Advisory</h3>
+                            <span class="alert-time">3 hours ago</span>
+                        </div>
+                        <p>District administration advises residents in low-lying areas to move to higher ground as precautionary measure.</p>
+                        <div class="alert-location">📍 Barabanki District</div>
+                    </div>
+                </div>
+
+                <div class="alert-card guarded">
+                    <div class="alert-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0110 0v4"></path>
+                        </svg>
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-header">
+                            <h3>Infrastructure Risk</h3>
+                            <span class="alert-time">5 hours ago</span>
+                        </div>
+                        <p>Bridge structural integrity being monitored. Traffic restrictions may be imposed if water level rises further.</p>
+                        <div class="alert-location">📍 Ayodhya</div>
+                    </div>
+                </div>
+
+                <div class="alert-card low">
+                    <div class="alert-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4M12 8h.01"></path>
+                        </svg>
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-header">
+                            <h3>Weather Update</h3>
+                            <span class="alert-time">8 hours ago</span>
+                        </div>
+                        <p>Monsoon conditions improving. Rainfall intensity expected to decrease over next 48 hours.</p>
+                        <div class="alert-location">📍 Central UP</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Upload & Inference Section -->
+        <section class="section" id="upload">
+            <div class="section-header">
+                <h1>Upload & Inference</h1>
+                <p>Analyze images or videos for flood risk assessment</p>
+            </div>
+
+            <div class="upload-container">
+                <div class="upload-toggle">
+                    <button class="toggle-btn active" data-type="image">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        Image
+                    </button>
+                    <button class="toggle-btn" data-type="video">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                        </svg>
+                        Video
+                    </button>
+                </div>
+
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="fileInput" accept="image/*,video/*" hidden>
+                    <div class="upload-content">
+                        <div class="upload-icon">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <h3>Drop files here or click to upload</h3>
+                        <p>Supports JPG, PNG, MP4, AVI (Max 50MB)</p>
+                    </div>
+                </div>
+
+                <div class="file-preview hidden" id="filePreview">
+                    <div class="preview-header">
+                        <h3>Preview</h3>
+                        <button class="btn-icon" id="removeFile">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="preview-content" id="previewContent"></div>
+                    <button class="btn btn-primary" id="analyzeBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        Analyze
+                    </button>
+                </div>
+
+                <div class="inference-loader hidden" id="inferenceLoader">
+                    <div class="loader-animation">
+                        <div class="loader-ring"></div>
+                        <div class="loader-icon">🧠</div>
+                    </div>
+                    <h3>AI Model Processing</h3>
+                    <p>Analyzing image for flood indicators...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">0%</div>
+                </div>
+
+                <div class="inference-result hidden" id="inferenceResult">
+                    <div class="result-header">
+                        <h3>Analysis Complete</h3>
+                        <div class="result-timestamp">Analyzed at <span id="resultTime"></span></div>
+                    </div>
+                    <div class="result-content">
+                        <div class="result-risk">
+                            <div class="result-badge elevated">
+                                <span>ELEVATED RISK</span>
+                            </div>
+                            <div class="result-confidence">
+                                <span>Confidence:</span>
+                                <strong>87%</strong>
+                            </div>
+                        </div>
+                        <div class="result-details">
+                            <h4>Detection Summary</h4>
+                            <ul>
+                                <li>✓ Water accumulation detected (42% of frame)</li>
+                                <li>✓ Infrastructure partially submerged</li>
+                                <li>✓ Rapid flow patterns identified</li>
+                                <li>⚠ Risk of further inundation: High</li>
+                            </ul>
+                        </div>
+                        <div class="result-recommendations">
+                            <h4>Recommendations</h4>
+                            <p>Immediate evacuation advised for residents in affected area. Contact emergency services: 1077</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Help Bot Section -->
+        <section class="section" id="help">
+            <div class="section-header">
+                <h1>Emergency Help & Information</h1>
+                <p>Get immediate assistance and safety guidance</p>
+            </div>
+
+            <div class="help-container">
+                <div class="emergency-numbers">
+                    <h3>🚨 Emergency Contacts</h3>
+                    <div class="contact-list">
+                        <div class="contact-item">
+                            <span class="contact-label">National Emergency:</span>
+                            <a href="tel:1077" class="contact-number">1077</a>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-label">NDRF Helpline:</span>
+                            <a href="tel:01126167177" class="contact-number">011-26167177</a>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-label">State Disaster Control:</span>
+                            <a href="tel:1070" class="contact-number">1070</a>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-label">Health Emergency:</span>
+                            <a href="tel:108" class="contact-number">108</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="safety-tips">
+                    <h3>💡 Safety Guidelines</h3>
+                    <div class="tip-cards">
+                        <div class="tip-card">
+                            <div class="tip-number">1</div>
+                            <div class="tip-content">
+                                <strong>Move to Higher Ground</strong>
+                                <p>Immediately evacuate low-lying areas when flood warning issued</p>
+                            </div>
+                        </div>
+                        <div class="tip-card">
+                            <div class="tip-number">2</div>
+                            <div class="tip-content">
+                                <strong>Avoid Floodwater</strong>
+                                <p>Never walk, swim, or drive through floodwater - depth can be deceptive</p>
+                            </div>
+                        </div>
+                        <div class="tip-card">
+                            <div class="tip-number">3</div>
+                            <div class="tip-content">
+                                <strong>Emergency Kit Ready</strong>
+                                <p>Keep flashlight, radio, medications, water, and important documents accessible</p>
+                            </div>
+                        </div>
+                        <div class="tip-card">
+                            <div class="tip-number">4</div>
+                            <div class="tip-content">
+                                <strong>Stay Informed</strong>
+                                <p>Monitor official channels and follow instructions from authorities</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section class="section" id="settings">
+            <div class="section-header">
+                <h1>Settings</h1>
+                <p>Customize your dashboard preferences</p>
+            </div>
+
+            <div class="settings-container">
+                <div class="settings-group">
+                    <h3>Notifications</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <strong>Risk Level Alerts</strong>
+                            <p>Receive notifications when risk level changes</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <strong>Weather Updates</strong>
+                            <p>Get weather forecast notifications</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <strong>Emergency Alerts</strong>
+                            <p>Critical flood warnings and evacuation orders</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Display</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <strong>Auto-refresh Data</strong>
+                            <p>Automatically update dashboard every 5 minutes</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <strong>Show Advanced Metrics</strong>
+                            <p>Display detailed technical information</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Location</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <strong>Use Current Location</strong>
+                            <p>Enable GPS for accurate local predictions</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="locationToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Floating Chatbot -->
+    <div class="chatbot-fab" id="chatbotFab">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"></path>
+        </svg>
+    </div>
+
+    <div class="chatbot-window hidden" id="chatbotWindow">
+        <div class="chatbot-header">
+            <div class="chatbot-title">
+                <div class="chatbot-avatar">🤖</div>
+                <div>
+                    <strong>FloodWatch Assistant</strong>
+                    <span>Emergency Support · Always Active</span>
+                </div>
+            </div>
+            <button class="btn-icon" id="closeChatbot">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="chatbot-messages" id="chatbotMessages">
+            <div class="message bot">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <p>Hello! I'm your FloodWatch emergency assistant. I can help you with:</p>
+                    <ul>
+                        <li>🚨 Emergency contacts and evacuation routes</li>
+                        <li>☔ Real-time flood risk information</li>
+                        <li>🏥 Relief center locations</li>
+                        <li>📋 Safety guidelines and preparedness tips</li>
+                    </ul>
+                    <p>How can I assist you?</p>
+                </div>
+            </div>
+        </div>
+        <div class="chatbot-quick-actions">
+            <button class="quick-action-btn">Emergency Numbers</button>
+            <button class="quick-action-btn">Nearest Shelter</button>
+            <button class="quick-action-btn">Safety Tips</button>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" placeholder="Type your question..." id="chatInput">
+            <button class="btn-icon send-btn" id="sendMessage">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
