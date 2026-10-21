@@ -2,16 +2,18 @@
 fastapi>=0.110.0
 uvicorn>=0.27.0
 
-# Image & video processing
-opencv-python>=4.8.0
+# Image & video processing (headless for cloud deployment)
+opencv-python-headless>=4.8.0
 numpy>=1.24.0
 Pillow>=10.0.0
 
-# ML / Torch (CPU by default)
+# PyTorch (CPU-only index to keep build fast & within Render free 512MB RAM)
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.1.0
 torchvision>=0.16.0
 
 # Audio / video handling
+imageio-ffmpeg>=0.4.9
 moviepy>=1.0.3
 soundfile>=0.12.1
 
@@ -21,6 +23,6 @@ psutil>=5.9.0
 requests>=2.31.0
 tqdm>=4.66.0
 
-# Optional but useful
+# Scientific computing
 scipy>=1.11.0
 scikit-image>=0.22.0
