@@ -763,6 +763,128 @@ async def infer_video(file: UploadFile = File(...)):
 # SERVE FRONTEND FILES
 # ==========================
 
+# ==========================
+# SIMULATION ENGINE ENDPOINTS
+# ==========================
+
+@app.get("/api/simulate/flood")
+@app.post("/api/simulate/flood")
+async def simulate_flood(
+    scenario: str = "river_breach",
+    rainfall: float = 65.0,
+    hours: float = 2.0,
+    drainage: float = 40.0
+):
+    """
+    Hydrological Flood Expansion Simulation Engine.
+    Simulates flood propagation, multi-zone surface growth, and evacuation telemetry.
+    """
+    try:
+        net_precip = max(0.0, rainfall * (1.0 - drainage / 100.0) * hours)
+        
+        scenario_params = {
+            "river_breach": {"c_base": 4.0, "c_max": 42.0, "k": 0.016, "speed_factor": 1.2},
+            "cloudburst": {"c_base": 1.5, "c_max": 48.0, "k": 0.024, "speed_factor": 1.8},
+            "dam_release": {"c_base": 6.0, "c_max": 55.0, "k": 0.030, "speed_factor": 2.2},
+        }
+        params = scenario_params.get(scenario, scenario_params["river_breach"])
+        
+        # Non-linear inundation saturation curve
+        water_coverage = params["c_base"] + params["c_max"] * (1.0 - np.exp(-params["k"] * net_precip))
+        water_coverage = round(min(65.0, max(1.5, float(water_coverage))), 2)
+        
+        core_fraction = min(0.60, 0.32 + 0.002 * net_precip)
+        zone_a = round(water_coverage * core_fraction, 2)
+        zone_b = round(water_coverage * 0.38, 2)
+        zone_c = round(max(0.0, water_coverage - zone_a - zone_b), 2)
+        
+        water_rise_m = round(0.4 + (net_precip * 0.022), 2)
+        submerged_area_sqkm = round(water_coverage * 3.8, 1)
+        velocity_kmh = round((1.2 + 0.03 * net_precip) * params["speed_factor"], 1)
+        
+        if water_coverage >= 35.0 or water_rise_m >= 3.5:
+            risk = "Extreme"
+            evacuation_hrs = round(max(0.5, 3.0 - (hours * 0.4)), 1)
+        elif water_coverage >= 25.0 or water_rise_m >= 2.5:
+            risk = "Severe"
+            evacuation_hrs = round(max(1.0, 5.0 - (hours * 0.5)), 1)
+        elif water_coverage >= 15.0 or water_rise_m >= 1.6:
+            risk = "Elevated"
+            evacuation_hrs = round(max(2.0, 8.0 - (hours * 0.6)), 1)
+        elif water_coverage >= 8.0:
+            risk = "Guarded"
+            evacuation_hrs = round(max(4.0, 14.0 - (hours * 0.8)), 1)
+        elif water_coverage >= 3.0:
+            risk = "Low"
+            evacuation_hrs = 24.0
+        else:
+            risk = "Minimal"
+            evacuation_hrs = 48.0
+            
+        return JSONResponse({
+            "status": "success",
+            "scenario": scenario,
+            "hours_elapsed": hours,
+            "rainfall_intensity_mmh": rainfall,
+            "drainage_efficiency_pct": drainage,
+            "risk_level": risk,
+            "water_coverage_pct": water_coverage,
+            "water_rise_meters": water_rise_m,
+            "submerged_area_sqkm": submerged_area_sqkm,
+            "flow_velocity_kmh": velocity_kmh,
+            "evacuation_window_hours": evacuation_hrs,
+            "zones": {
+                "zone_a_core": f"{zone_a}%",
+                "zone_b_buffer": f"{zone_b}%",
+                "zone_c_moisture": f"{zone_c}%"
+            },
+            "explainability": {
+                "Precipitation Index": f"{round(net_precip, 1)} mm effective",
+                "Basin Saturation": "Critical" if water_coverage > 25 else "Moderate",
+                "Estimated Population Alert": "Level 4 (Red Alert)" if risk in ["Severe", "Extreme"] else "Level 2 (Amber)",
+                "Evacuation Recommended": bool(risk in ["Elevated", "Severe", "Extreme"])
+            }
+        })
+    except Exception as e:
+        print(f"Error in simulation: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/simulate/sample")
+async def simulate_sample():
+    """
+    Run real computer vision inference pipeline on sample image for one-click demos
+    """
+    try:
+        sample_file = BASE_DIR / "test_images" / "Screenshot 2026-01-04 092756.png"
+        if not sample_file.exists():
+            test_files = list((BASE_DIR / "test_images").glob("*.png"))
+            if test_files:
+                sample_file = test_files[0]
+            else:
+                return JSONResponse({"error": "No test images found"}, status_code=404)
+                
+        frame = cv2.imread(str(sample_file))
+        if frame is None:
+            return JSONResponse({"error": "Failed to decode sample image"}, status_code=500)
+            
+        analysis = analyze_frame(frame)
+        output = annotate_frame(frame, analysis)
+        
+        out_path = OUTPUT_DIR / f"demo_sim_{int(time.time())}.png"
+        cv2.imwrite(str(out_path), output)
+        
+        return JSONResponse({
+            "status": "success",
+            "sample_name": sample_file.name,
+            "risk": analysis["risk_level"],
+            "water_coverage": analysis["water_coverage"],
+            "details": analysis["explainability"],
+            "output_image": out_path.name
+        })
+    except Exception as e:
+        print(f"Error running sample inference: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 # Serve frontend files (AFTER API routes to avoid conflicts)
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 

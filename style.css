@@ -2135,3 +2135,305 @@ body::after {
 .leaflet-control-layers-base label:hover {
     color: #38bdf8;
 }
+
+/* =========================================================================
+   FLOOD SIMULATOR STYLES
+   ========================================================================= */
+
+.simulation-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.sim-scenario-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(30, 41, 59, 0.6);
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex-wrap: wrap;
+}
+
+.sim-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+}
+
+.sim-scenario-btn {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sim-scenario-btn:hover {
+    border-color: #38bdf8;
+    color: #38bdf8;
+}
+
+.sim-scenario-btn.active {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(2, 132, 199, 0.5);
+}
+
+.sim-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 24px;
+}
+
+@media (max-width: 992px) {
+    .sim-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.sim-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(10px);
+}
+
+.sim-controls h3 {
+    font-size: 18px;
+    color: #f8fafc;
+    margin-bottom: 20px;
+}
+
+.sim-slider-group {
+    margin-bottom: 22px;
+}
+
+.sim-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.sim-slider-header label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.sim-value-badge {
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+}
+
+.sim-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #334155;
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+.sim-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #38bdf8;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+}
+
+.sim-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 4px;
+    display: block;
+}
+
+.sim-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.sim-monitor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.sim-subtitle {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.08em;
+}
+
+.sim-risk-badge {
+    font-size: 26px;
+    font-weight: 800;
+    margin: 4px 0 0 0;
+    letter-spacing: 0.04em;
+}
+
+.sim-risk-badge.minimal { color: #22c55e; }
+.sim-risk-badge.low { color: #84cc16; }
+.sim-risk-badge.guarded { color: #eab308; }
+.sim-risk-badge.elevated { color: #f97316; }
+.sim-risk-badge.severe { color: #ef4444; }
+.sim-risk-badge.extreme { color: #dc2626; text-shadow: 0 0 16px rgba(220, 38, 38, 0.6); }
+
+.sim-status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.9); opacity: 0.8; }
+    50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px #22c55e; }
+    100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+.sim-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .sim-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.sim-metric-box {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+}
+
+.sim-metric-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    display: block;
+}
+
+.sim-metric-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 4px 0 2px 0;
+    display: block;
+}
+
+.sim-metric-value.alert { color: #f97316; }
+.sim-metric-value.danger { color: #ef4444; }
+
+.sim-metric-sub {
+    font-size: 10px;
+    color: #64748b;
+}
+
+.sim-canvas-box {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+#simCanvas {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.sim-canvas-legend {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    padding: 8px;
+    background: rgba(15, 23, 42, 0.8);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 12px;
+    color: #cbd5e1;
+}
+
+.sim-canvas-legend .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+}
+
+.sim-canvas-legend .dot.red { background: #ef4444; }
+.sim-canvas-legend .dot.orange { background: #f97316; }
+.sim-canvas-legend .dot.cyan { background: #38bdf8; }
+
+.sim-explain-box {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 14px 18px;
+}
+
+.sim-explain-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sim-explain-row:last-child {
+    border-bottom: none;
+}
+
+.sim-explain-row span {
+    color: #94a3b8;
+}
+
+.safe-text { color: #22c55e; }
+.warning-text { color: #f97316; }
+.danger-text { color: #ef4444; font-weight: 700; }
