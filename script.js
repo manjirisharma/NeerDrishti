@@ -58,6 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initChatbot();
     initSettings();
     initSimulationSection();
+    initPipelineStepper();
+    initMapFlowSimulation();
     updateLastUpdated();
     
     // Check backend availability
@@ -2659,4 +2661,415 @@ function drawSimulationCanvas(totalPct, zoneA, zoneB) {
     ctx.font = '12px Segoe UI, sans-serif';
     ctx.fillStyle = '#f8fafc';
     ctx.fillText('Central River Basin Inundation Boundary', 25, 30);
+}
+
+
+// ============================================
+// SYSTEM PIPELINE FLOW SIMULATOR ENGINE
+// ============================================
+
+const pipelineStages = [
+    {
+        step: 1,
+        tag: "STAGE 1 OF 6",
+        title: "Aerial Drone & Satellite Ingestion",
+        subheading: "Raw Frame Ingestion & Spatial Preprocessing",
+        desc: "High-resolution map screenshots or aerial drone video streams are received by the FastAPI backend. Frames are decoded, normalized to RGB, and formatted for multi-spectrum decomposition.",
+        spec1_title: "Target Input", spec1_val: "PNG / JPG / MP4 Video",
+        spec2_title: "Core Library", spec2_val: "OpenCV (cv2) + NumPy",
+        spec3_title: "Execution Speed", spec3_val: "< 45 ms",
+        spec4_title: "Compute Mode", spec4_val: "CPU / CUDA Auto-detect",
+        code: `frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+h, w, c = frame.shape  # Ingested: 1096x590x3
+print(f"[INFO] Ingested frame: {w}x{h} on {DEVICE}")`,
+        visualHtml: `
+            <div class="anim-screen-box">
+                <div class="scanner-sweep"></div>
+                <div class="anim-badge top-left">DRONE SENSOR INGESTION</div>
+                <div class="anim-badge bottom-right">1096 x 590 px</div>
+                <div class="target-crosshair"></div>
+            </div>`
+    },
+    {
+        step: 2,
+        tag: "STAGE 2 OF 6",
+        title: "Multi-Spectrum Color Space Fusion",
+        subheading: "HSV + CIELAB Color Decomposition",
+        desc: "Standard RGB fails on muddy water and tree canopy shadows. NeerDrishti converts frames to HSV (extracting brownish sediment and blue water) and CIELAB (isolating water under tree shadows via L-channel variance).",
+        spec1_title: "Color Spaces", spec1_val: "RGB + HSV + CIELAB",
+        spec2_title: "Sediment Filter", spec2_val: "H: 5-30, S: 40-220",
+        spec3_title: "Canopy Variance", spec3_val: "Luminance |L - L_mean| < 20",
+        spec4_title: "Output", spec4_val: "Binary Water Mask",
+        code: `hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+muddy_mask = cv2.inRange(hsv, np.array([5,40,40]), np.array([30,220,170]))
+canopy_mask = detect_vegetation_water(frame, hsv, gray)`,
+        visualHtml: `
+            <div class="anim-screen-box spectrum">
+                <div class="spectrum-channels">
+                    <div class="channel-card ch-rgb"><span>RGB Stream</span></div>
+                    <div class="channel-arrow">➔</div>
+                    <div class="channel-card ch-hsv"><span>HSV Muddy</span></div>
+                    <div class="channel-arrow">➔</div>
+                    <div class="channel-card ch-lab"><span>LAB Shadows</span></div>
+                </div>
+            </div>`
+    },
+    {
+        step: 3,
+        tag: "STAGE 3 OF 6",
+        title: "Texture & Road False-Positive Suppression",
+        subheading: "Sobel Gradient Variance & Aspect Ratio Filtering",
+        desc: "Dark asphalt roads and shadows frequently trigger false water positives. NeerDrishti computes Sobel gradient variance: water has low variance (smooth), while roads display high boundary gradient and elongated contour aspect ratios (>12:1).",
+        spec1_title: "Texture Filter", spec1_val: "Sobel Gradient Magnitude",
+        spec2_title: "Water Smoothness", spec2_val: "Gradient Var < 15.0",
+        spec3_title: "Road Rejection", spec3_val: "Aspect Ratio > 12:1",
+        spec4_title: "Accuracy Gain", spec4_val: "+34% Road False-Positive Drop",
+        code: `grad_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+grad_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+grad_mag = np.sqrt(grad_x**2 + grad_y**2)
+suppressed = suppress_road_false_positives(combined_mask, frame)`,
+        visualHtml: `
+            <div class="anim-screen-box rejection">
+                <div class="rejection-grid">
+                    <div class="reject-box water-valid"><span class="badge-ok">✓ WATER CONFIRMED</span><p>Low Gradient Variance</p></div>
+                    <div class="reject-box road-invalid"><span class="badge-no">✕ ROAD DISCARDED</span><p>High Edge Texture (>12:1)</p></div>
+                </div>
+            </div>`
+    },
+    {
+        step: 4,
+        tag: "STAGE 4 OF 6",
+        title: "Multi-Scale Zonal Risk Heatmapping",
+        subheading: "Morphological Zoning & Gaussian Convolutions",
+        desc: "Water masks are segmented into Zone A (Core Water Basin), Zone B (Hazard Buffer Zone), and Zone C (Moisture Spread). Four multi-scale Gaussian filters (sigma 5, 10, 20, 30) blend the zones into a research-grade continuous heatmap.",
+        spec1_title: "Zone A (Red)", spec1_val: "Core Water Inundation",
+        spec2_title: "Zone B (Orange)", spec2_val: "Buffer Risk Periphery",
+        spec3_title: "Zone C (Cyan)", spec3_val: "Low-lying Moisture Saturation",
+        spec4_title: "Smoothing", spec4_val: "Multi-scale Gaussian (σ=5..30)",
+        code: `zone_a, zone_b, zone_c = classify_water_zones(mask, frame)
+heatmap_a = create_multi_scale_heatmap(zone_a, frame.shape)
+annotated = annotate_frame(frame, analysis)`,
+        visualHtml: `
+            <div class="anim-screen-box heatmap-preview">
+                <div class="heatmap-rings">
+                    <div class="ring-c"><div class="ring-b"><div class="ring-a">ZONE A</div></div></div>
+                </div>
+            </div>`
+    },
+    {
+        step: 5,
+        tag: "STAGE 5 OF 6",
+        title: "Explainable AI (XAI) Decision Engine",
+        subheading: "Transparent Audit Trail & Geometry Classification",
+        desc: "Instead of black-box prediction, NeerDrishti outputs exact water coverage percentages, edge boundary confidence, and analyzes geometric circularity to classify whether the body is a river, lake, or coastal storm surge.",
+        spec1_title: "Coverage %", spec1_val: "18.4% Relative",
+        spec2_title: "Water Body Type", spec2_val: "River Basin Inundation",
+        spec3_title: "Edge Confidence", spec3_val: "0.84 (Canny confirmed)",
+        spec4_title: "Decision Status", spec4_val: "High-Confidence Alert",
+        code: `return {
+    "risk_level": "Elevated",
+    "water_coverage": 18.4,
+    "details": {
+        "Water presence": "18.4%",
+        "water_body_type": "river",
+        "false_positive_suppressed": True
+    }
+}`,
+        visualHtml: `
+            <div class="anim-screen-box explainability-hud">
+                <div class="hud-item"><span class="hud-label">RISK LEVEL</span><strong class="hud-val elevated">ELEVATED</strong></div>
+                <div class="hud-item"><span class="hud-label">WATER BODY</span><strong class="hud-val">RIVER BASIN</strong></div>
+                <div class="hud-item"><span class="hud-label">CONFIDENCE</span><strong class="hud-val">94.2%</strong></div>
+            </div>`
+    },
+    {
+        step: 6,
+        tag: "STAGE 6 OF 6",
+        title: "Disaster Response & Citizen Alert Dispatch",
+        subheading: "Automated Evacuation Advisories & Siren Triggering",
+        desc: "Once the risk threshold is established, NeerDrishti dispatches automated evacuation orders, broadcasts push alerts with live GIS coordinates to first responders (NDRF / SDRF), and calculates the remaining evacuation window.",
+        spec1_title: "Alert Status", spec1_val: "Level 2 (Amber Warning)",
+        spec2_title: "Evacuation Window", spec2_val: "6.8 Hours Remaining",
+        spec3_title: "Dispatch Action", spec3_val: "Deploy Patrol Boats & Sandbags",
+        spec4_title: "Citizen Push", spec4_val: "Broadcast via Telegram / SMS",
+        code: `dispatch_emergency_alert(
+    level="Level 2",
+    evacuation_hours=6.8,
+    target_area="Gomti River Basin",
+    coordinates=[26.8467, 80.9462]
+)`,
+        visualHtml: `
+            <div class="anim-screen-box alert-dispatch">
+                <div class="alert-siren-ring"></div>
+                <div class="alert-msg-card">
+                    <span class="siren-icon">🚨</span>
+                    <strong>EVACUATION ADVISORY ACTIVE</strong>
+                    <p>Low-lying areas along river basin must evacuate within 6.8h.</p>
+                </div>
+            </div>`
+    }
+];
+
+let currentPipelineStep = 1;
+let pipelineAutoPlayTimer = null;
+let isPipelinePlaying = false;
+
+function initPipelineStepper() {
+    const prevBtn = document.getElementById('btnPrevStep');
+    const nextBtn = document.getElementById('btnNextStep');
+    const autoPlayBtn = document.getElementById('btnAutoPlayPipeline');
+    const stepNodes = document.querySelectorAll('.step-node');
+    const modeTabs = document.querySelectorAll('.flow-mode-tab');
+    const goToMapBtn = document.getElementById('btnGoToMapWithFlow');
+
+    // Mode tab switching
+    modeTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            modeTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const mode = tab.dataset.mode;
+            document.querySelectorAll('.flow-panel').forEach(p => p.classList.remove('active'));
+            if (mode === 'pipeline') document.getElementById('panelPipeline')?.classList.add('active');
+            else if (mode === 'hydraulic') document.getElementById('panelHydraulic')?.classList.add('active');
+            else if (mode === 'mapflow') document.getElementById('panelMapFlow')?.classList.add('active');
+        });
+    });
+
+    goToMapBtn?.addEventListener('click', () => {
+        navigateToSection('map');
+        startMapFlowSimulation();
+    });
+
+    // Step node direct clicks
+    stepNodes.forEach(node => {
+        node.addEventListener('click', () => {
+            const step = parseInt(node.dataset.step);
+            setPipelineStep(step);
+        });
+    });
+
+    prevBtn?.addEventListener('click', () => {
+        if (currentPipelineStep > 1) {
+            setPipelineStep(currentPipelineStep - 1);
+        }
+    });
+
+    nextBtn?.addEventListener('click', () => {
+        if (currentPipelineStep < pipelineStages.length) {
+            setPipelineStep(currentPipelineStep + 1);
+        } else {
+            setPipelineStep(1);
+        }
+    });
+
+    autoPlayBtn?.addEventListener('click', () => {
+        if (isPipelinePlaying) {
+            stopPipelineAutoPlay();
+        } else {
+            startPipelineAutoPlay();
+        }
+    });
+
+    // Render initial step
+    renderPipelineStep(1);
+}
+
+function setPipelineStep(step) {
+    currentPipelineStep = step;
+    renderPipelineStep(step);
+}
+
+function renderPipelineStep(step) {
+    const stage = pipelineStages[step - 1];
+    if (!stage) return;
+
+    // Update nodes
+    document.querySelectorAll('.step-node').forEach(node => {
+        const s = parseInt(node.dataset.step);
+        node.classList.remove('active', 'completed');
+        if (s === step) node.classList.add('active');
+        else if (s < step) node.classList.add('completed');
+    });
+
+    // Update texts
+    const tagElem = document.getElementById('stageTag');
+    const titleElem = document.getElementById('stageTitle');
+    const subElem = document.getElementById('stageSubheading');
+    const descElem = document.getElementById('stageDescription');
+    const animElem = document.getElementById('stageAnimScreen');
+    const codeElem = document.getElementById('stageCodeBlock');
+
+    if (tagElem) tagElem.textContent = stage.tag;
+    if (titleElem) titleElem.textContent = stage.title;
+    if (subElem) subElem.textContent = stage.subheading;
+    if (descElem) descElem.textContent = stage.desc;
+    if (animElem) animElem.innerHTML = stage.visualHtml;
+    if (codeElem) codeElem.innerHTML = `<code>${stage.code}</code>`;
+
+    // Specs
+    document.getElementById('specTitle1').textContent = stage.spec1_title;
+    document.getElementById('specVal1').textContent = stage.spec1_val;
+    document.getElementById('specTitle2').textContent = stage.spec2_title;
+    document.getElementById('specVal2').textContent = stage.spec2_val;
+    document.getElementById('specTitle3').textContent = stage.spec3_title;
+    document.getElementById('specVal3').textContent = stage.spec3_val;
+    document.getElementById('specTitle4').textContent = stage.spec4_title;
+    document.getElementById('specVal4').textContent = stage.spec4_val;
+}
+
+function startPipelineAutoPlay() {
+    isPipelinePlaying = true;
+    const btn = document.getElementById('btnAutoPlayPipeline');
+    if (btn) btn.innerHTML = '⏸ Pause Tour';
+
+    pipelineAutoPlayTimer = setInterval(() => {
+        if (currentPipelineStep < pipelineStages.length) {
+            setPipelineStep(currentPipelineStep + 1);
+        } else {
+            setPipelineStep(1);
+        }
+    }, 2800);
+}
+
+function stopPipelineAutoPlay() {
+    isPipelinePlaying = false;
+    clearInterval(pipelineAutoPlayTimer);
+    const btn = document.getElementById('btnAutoPlayPipeline');
+    if (btn) btn.innerHTML = '▶ Auto-Run Pipeline Tour';
+}
+
+// ============================================
+// MAP HYDRAULIC FLOW PARTICLES SIMULATION
+// ============================================
+
+let mapFlowActive = true;
+let mapFlowSpeed = 1.0;
+let mapFlowParticles = [];
+let mapFlowAnimationId = null;
+
+function initMapFlowSimulation() {
+    const toggleBtn = document.getElementById('btnToggleFlowSim');
+    const toggleText = document.getElementById('flowToggleText');
+    const speedBtns = document.querySelectorAll('.flow-speed-selector .speed-btn');
+
+    toggleBtn?.addEventListener('click', () => {
+        mapFlowActive = !mapFlowActive;
+        toggleBtn.classList.toggle('active', mapFlowActive);
+        if (toggleText) {
+            toggleText.textContent = mapFlowActive ? '🌊 Hydraulic Flow Streamlines: ON' : '🌊 Hydraulic Flow Streamlines: OFF';
+        }
+        const canvas = document.getElementById('mapFlowCanvas');
+        if (canvas) canvas.style.display = mapFlowActive ? 'block' : 'none';
+        if (mapFlowActive) startMapFlowAnimation();
+        else stopMapFlowAnimation();
+    });
+
+    speedBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            speedBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            mapFlowSpeed = parseFloat(btn.dataset.speed);
+        });
+    });
+
+    setupMapFlowCanvas();
+}
+
+function setupMapFlowCanvas() {
+    const canvas = document.getElementById('mapFlowCanvas');
+    const mapContainer = document.querySelector('.map-container');
+    if (!canvas || !mapContainer) return;
+
+    function resizeCanvas() {
+        canvas.width = mapContainer.clientWidth;
+        canvas.height = mapContainer.clientHeight;
+        createParticles(canvas.width, canvas.height);
+    }
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    if (state.map) {
+        state.map.on('move', resizeCanvas);
+        state.map.on('zoomend', resizeCanvas);
+    }
+
+    startMapFlowAnimation();
+}
+
+function createParticles(width, height) {
+    mapFlowParticles = [];
+    const count = 120;
+    for (let i = 0; i < count; i++) {
+        mapFlowParticles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: 0.8 + Math.random() * 1.5,
+            vy: 0.3 + (Math.random() - 0.4) * 0.8,
+            length: 12 + Math.random() * 20,
+            opacity: 0.2 + Math.random() * 0.7,
+            color: Math.random() > 0.3 ? '#38bdf8' : '#34d399',
+            life: Math.random() * 100
+        });
+    }
+}
+
+function startMapFlowAnimation() {
+    if (mapFlowAnimationId) cancelAnimationFrame(mapFlowAnimationId);
+
+    const canvas = document.getElementById('mapFlowCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    function animate() {
+        if (!mapFlowActive) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        mapFlowParticles.forEach(p => {
+            p.x += p.vx * mapFlowSpeed;
+            p.y += p.vy * mapFlowSpeed;
+            p.life++;
+
+            if (p.x > canvas.width || p.y > canvas.height || p.life > 120) {
+                p.x = Math.random() * (canvas.width * 0.3);
+                p.y = Math.random() * canvas.height;
+                p.life = 0;
+            }
+
+            // Draw glowing flow streamline
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - p.length * p.vx * (mapFlowSpeed * 0.5), p.y - p.length * p.vy * (mapFlowSpeed * 0.5));
+            ctx.strokeStyle = p.color;
+            ctx.globalAlpha = p.opacity;
+            ctx.lineWidth = 2.0;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+        });
+
+        mapFlowAnimationId = requestAnimationFrame(animate);
+    }
+
+    animate();
+}
+
+function stopMapFlowAnimation() {
+    if (mapFlowAnimationId) {
+        cancelAnimationFrame(mapFlowAnimationId);
+        mapFlowAnimationId = null;
+    }
+    const canvas = document.getElementById('mapFlowCanvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+function startMapFlowSimulation() {
+    mapFlowActive = true;
+    const canvas = document.getElementById('mapFlowCanvas');
+    if (canvas) canvas.style.display = 'block';
+    setupMapFlowCanvas();
 }
